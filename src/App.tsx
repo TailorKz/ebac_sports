@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import Header from './components/Header'
 import Produtos from './containers/Produtos'
-
+import { useSelector, useDispatch } from 'react-redux'
+import { RootState, AppDispatch } from './store/store'
+import { adicionarAoCarrinho } from './store/carrinhoSlice'
+import { adicionarFavorito, removerFavorito } from './store/favoritosSlice'
 import { GlobalStyle } from './styles'
 
 export type Produto = {
@@ -12,9 +15,12 @@ export type Produto = {
 }
 
 function App() {
+  const dispatch = useDispatch<AppDispatch>()
+  const itensNoCarrinho = useSelector(
+    (state: RootState) => state.carrinho.itens
+  )
+  const favoritos = useSelector((state: RootState) => state.favoritos.itens)
   const [produtos, setProdutos] = useState<Produto[]>([])
-  const [carrinho, setCarrinho] = useState<Produto[]>([])
-  const [favoritos, setFavoritos] = useState<Produto[]>([])
 
   useEffect(() => {
     fetch('https://fake-api-tau.vercel.app/api/ebac_sports')
@@ -22,33 +28,24 @@ function App() {
       .then((res) => setProdutos(res))
   }, [])
 
-  function adicionarAoCarrinho(produto: Produto) {
-    if (carrinho.find((p) => p.id === produto.id)) {
-      alert('Item já adicionado')
-    } else {
-      setCarrinho([...carrinho, produto])
-    }
-  }
-
-  function favoritar(produto: Produto) {
-    if (favoritos.find((p) => p.id === produto.id)) {
-      const favoritosSemProduto = favoritos.filter((p) => p.id !== produto.id)
-      setFavoritos(favoritosSemProduto)
-    } else {
-      setFavoritos([...favoritos, produto])
-    }
-  }
-
   return (
     <>
       <GlobalStyle />
       <div className="container">
-        <Header favoritos={favoritos} itensNoCarrinho={carrinho} />
+        <Header favoritos={favoritos} itensNoCarrinho={itensNoCarrinho} />
         <Produtos
           produtos={produtos}
           favoritos={favoritos}
-          favoritar={favoritar}
-          adicionarAoCarrinho={adicionarAoCarrinho}
+          adicionarAoCarrinho={(produto: Produto) =>
+            dispatch(adicionarAoCarrinho(produto))
+          }
+          favoritar={(produto: Produto) => {
+            if (favoritos.some((f: Produto) => f.id === produto.id)) {
+              dispatch(removerFavorito(produto.id))
+            } else {
+              dispatch(adicionarFavorito(produto))
+            }
+          }}
         />
       </div>
     </>
